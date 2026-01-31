@@ -79,6 +79,9 @@ cover/
 *.mo
 *.pot
 
+# Trained Models:
+HW_LAB_1/models/*.pkl
+
 # Django stuff:
 *.log
 local_settings.py
@@ -88,6 +91,9 @@ db.sqlite3-journal
 # Flask stuff:
 instance/
 .webassets-cache
+
+# Saved Images:
+HW_LAB_1/static/*.png
 
 # Scrapy stuff:
 .scrapy
