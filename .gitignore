@@ -16,6 +16,7 @@ google-cloud-sdk/
 # C extensions
 *.so
 *.tar.gz
+*.csv
 *.json
 *.pdf
 
