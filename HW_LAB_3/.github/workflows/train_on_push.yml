@@ -1,0 +1,73 @@
+# Model Training on Push - Trains and versions model on code changes
+name: Train Model on Push
+
+on:
+  push:
+    branches: [HW-LAB-3]
+    paths:
+      - 'src/**'
+      - 'requirements.txt'
+  workflow_dispatch:  # Allow manual trigger
+
+jobs:
+  train:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Get pip cache dir
+      id: pip-cache-dir
+      run: echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.pip-cache-dir.outputs.dir }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Generate timestamp
+      id: timestamp
+      run: |
+        timestamp=$(date '+%Y%m%d%H%M%S')
+        echo "ts=$timestamp" >> $GITHUB_OUTPUT
+        echo "Timestamp: $timestamp"
+
+    - name: Train model
+      run: |
+        python src/train_cli.py --points 100 --degree 5 --timestamp ${{ steps.timestamp.outputs.ts }} --evaluate --verbose
+
+    - name: Upload model artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: trained-model-${{ steps.timestamp.outputs.ts }}
+        path: models/
+
+    - name: Upload metrics
+      uses: actions/upload-artifact@v3
+      with:
+        name: metrics-${{ steps.timestamp.outputs.ts }}
+        path: metrics/
+
+    - name: Commit model and metrics
+      run: |
+        git config user.name "github-actions[bot]"
+        git config user.email "github-actions[bot]@users.noreply.github.com"
+        git add models/ metrics/ || true
+        git diff --cached --quiet || git commit -m "🤖 Auto-trained model ${{ steps.timestamp.outputs.ts }}"
+        git push || echo "Nothing to push"
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

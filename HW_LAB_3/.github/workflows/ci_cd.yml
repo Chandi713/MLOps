@@ -1,0 +1,128 @@
+# Full CI/CD Pipeline - Test, Train, Build Docker, Push to GCP
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [HW-LAB-3]
+  workflow_dispatch:
+
+env:
+  REGION: us-east4
+  REPOSITORY_NAME: hw-lab-3-repo
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ~/.cache/pip
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run tests
+      run: pytest test/test_pytest.py -v --junitxml=test-results.xml
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results
+        path: test-results.xml
+
+  train:
+    needs: test
+    runs-on: ubuntu-latest
+    outputs:
+      model_version: ${{ steps.train.outputs.version }}
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Authenticate with GCP
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+    - name: Generate timestamp
+      id: timestamp
+      run: |
+        timestamp=$(date '+%Y%m%d%H%M%S')
+        echo "ts=$timestamp" >> $GITHUB_OUTPUT
+
+    - name: Create .env file
+      run: |
+        echo "GCS_BUCKET_NAME=${{ secrets.GCS_BUCKET_NAME }}" >> .env
+        echo "VERSION_FILE_NAME=model_version.txt" >> .env
+
+    - name: Train model and upload to GCS
+      id: train
+      run: |
+        python src/train_cli.py --points 100 --degree 5 --timestamp ${{ steps.timestamp.outputs.ts }} --evaluate --save-to-gcs --verbose
+        echo "version=${{ steps.timestamp.outputs.ts }}" >> $GITHUB_OUTPUT
+
+    - name: Upload model artifact
+      uses: actions/upload-artifact@v3
+      with:
+        name: model-${{ steps.timestamp.outputs.ts }}
+        path: models/
+
+  build:
+    needs: train
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/HW-LAB-3'
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Authenticate with GCP
+      uses: google-github-actions/auth@v2
+      with:
+        credentials_json: '${{ secrets.GCP_SA_KEY }}'
+
+    - name: Set up Cloud SDK
+      uses: google-github-actions/setup-gcloud@v1
+
+    - name: Configure Docker for GCP
+      run: gcloud auth configure-docker ${{ env.REGION }}-docker.pkg.dev
+
+    - name: Build Docker image
+      run: |
+        docker build -t ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY_NAME }}/polynomial-regression:${{ needs.train.outputs.model_version }} .
+        docker tag ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY_NAME }}/polynomial-regression:${{ needs.train.outputs.model_version }} ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY_NAME }}/polynomial-regression:latest
+
+    - name: Push Docker image
+      run: |
+        docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY_NAME }}/polynomial-regression:${{ needs.train.outputs.model_version }}
+        docker push ${{ env.REGION }}-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/${{ env.REPOSITORY_NAME }}/polynomial-regression:latest
+
+    - name: Notify on success
+      if: success()
+      run: echo "✅ Docker image pushed successfully"

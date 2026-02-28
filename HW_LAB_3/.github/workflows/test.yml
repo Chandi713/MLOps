@@ -1,0 +1,58 @@
+# Testing Workflow - Runs pytest and unittest on push to HW-LAB-3
+name: Run Tests
+
+on:
+  push:
+    branches: [HW-LAB-3]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+
+    - name: Get pip cache dir
+      id: pip-cache-dir
+      run: echo "dir=$(pip cache dir)" >> $GITHUB_OUTPUT
+
+    - name: Cache pip dependencies
+      uses: actions/cache@v4
+      with:
+        path: ${{ steps.pip-cache-dir.outputs.dir }}
+        key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+        restore-keys: |
+          ${{ runner.os }}-pip-
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    - name: Run pytest
+      run: pytest test/test_pytest.py -v --junitxml=pytest-results.xml
+      continue-on-error: false
+
+    - name: Run unittest
+      run: python -m unittest test.test_unittest -v
+
+    - name: Upload test results
+      if: always()
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results
+        path: pytest-results.xml
+
+    - name: Notify on success
+      if: success()
+      run: echo "✅ All tests passed successfully"
+
+    - name: Notify on failure
+      if: failure()
+      run: echo "❌ Tests failed"
