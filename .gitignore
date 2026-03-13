@@ -13,6 +13,11 @@ pipeline/
 istio-1.23.2/
 test_env/
 google-cloud-sdk/
+# Terraform
+*.tfstate
+*.tfstate.backup
+.terraform/
+
 # C extensions
 *.so
 *.tar.gz
