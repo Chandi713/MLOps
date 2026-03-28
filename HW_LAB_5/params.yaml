@@ -1,0 +1,10 @@
+prepare:
+  # Passed to prepare_dataset --seed (use -1 in a param experiment for nondeterministic shuffle)
+  seed: 42
+
+train:
+  batch_size: 16
+  epochs: 5
+  validation_split: 0.2
+  test_fraction: 0.2
+  split_seed: 42

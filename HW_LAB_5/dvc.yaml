@@ -1,0 +1,60 @@
+vars:
+  - params.yaml
+
+stages:
+  step_1:
+    desc: Build pickle tensors from data/train (pull/checkout data with DVC first if needed).
+    cmd: python -m src.prepare_dataset --seed ${prepare.seed}
+    params:
+      - params.yaml:
+          - prepare
+    deps:
+      - data/train
+      - src/prepare_dataset.py
+      - src/constants.py
+    outs:
+      - artifacts/X_train.pickle
+      - artifacts/y_train.pickle
+
+  train:
+    cmd: >
+      python -m src.train
+      --batch-size ${train.batch_size}
+      --epochs ${train.epochs}
+      --validation-split ${train.validation_split}
+      --test-fraction ${train.test_fraction}
+      --split-seed ${train.split_seed}
+    params:
+      - params.yaml:
+          - train
+    deps:
+      - artifacts/X_train.pickle
+      - artifacts/y_train.pickle
+      - src/train.py
+      - src/constants.py
+    outs:
+      - artifacts/model.keras
+      - artifacts/train_metrics.json
+      - artifacts/X_test.pickle
+      - artifacts/y_test.pickle
+
+  evaluate:
+    cmd: python -m src.evaluate
+    deps:
+      - artifacts/model.keras
+      - artifacts/X_test.pickle
+      - artifacts/y_test.pickle
+      - src/evaluate.py
+      - src/constants.py
+    metrics:
+      - artifacts/eval_metrics.json:
+          cache: false
+
+  save_model:
+    cmd: python -m src.save_model
+    deps:
+      - artifacts/model.keras
+      - src/save_model.py
+      - src/constants.py
+    outs:
+      - models/model.keras
