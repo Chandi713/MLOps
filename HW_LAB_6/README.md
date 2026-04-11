@@ -140,7 +140,7 @@ registry/
 
 The entry point of the MLflow UI. Every execution of `main.py` creates a new row.
 
-![Runs List](mlflow_images/image.png)
+![Runs List](mlflow_images/runs_list.png)
 
 Each row shows the run name (`yolo11_deepfashion2`), creation time, duration, and source (`ipykernel_launcher.py` when run from Jupyter / ipykernel). Status indicators distinguish finished runs (green check) from runs that were interrupted. Across the five runs shown, durations range from 7.6 min (quick sanity check) to 1.3 h (full training), making it easy to spot which runs were full training passes vs. short tests.
 
@@ -150,7 +150,7 @@ Each row shows the run name (`yolo11_deepfashion2`), creation time, duration, an
 
 Clicking any run opens its Overview tab, which surfaces the most important numbers at a glance.
 
-![Run Overview](mlflow_images/image%20copy.png)
+![Run Overview](mlflow_images/run_overview.png)
 
 **Metrics panel (left)** shows the 13 logged metrics for the run. The best run achieved:
 
@@ -170,7 +170,7 @@ Clicking any run opens its Overview tab, which surfaces the most important numbe
 
 The **Model metrics** tab renders interactive time-series charts for every metric logged across steps, automatically grouped by prefix.
 
-![Training Loss Curves](mlflow_images/image%20copy%202.png)
+![Training Loss Curves](mlflow_images/loss_curves.png)
 
 Three loss components are tracked across training steps:
 
@@ -188,7 +188,7 @@ All three curves show a consistent downward trend, confirming that the model is 
 
 The **Artifacts** tab provides a file browser over everything logged with `mlflow.log_artifact`.
 
-![Artifacts Tab](mlflow_images/image%20copy%203.png)
+![Artifacts Tab](mlflow_images/artifacts_tab.png)
 
 The tree is organised into three folders matching exactly what the pipeline logs:
 
@@ -204,7 +204,7 @@ The path shown at the top of the Artifacts tab is the physical location on the f
 
 For runs with a full artifact set logged, the **Artifacts** tab also stores YOLO's validation batch visualisations — ground-truth labels and model predictions side by side.
 
-![Validation Predictions](mlflow_images/Screenshot%202026-04-11%20at%2011.46.15%20AM.png)
+![Validation Predictions](mlflow_images/val_predictions_artifacts.png)
 
 The left panel lists the complete artifact tree for this run, which includes the full YOLO output:
 
