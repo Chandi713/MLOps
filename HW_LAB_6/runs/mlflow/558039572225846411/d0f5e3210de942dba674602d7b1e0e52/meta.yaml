@@ -1,0 +1,14 @@
+artifact_uri: /home/chandi.s/ondemand/ClickTheLook/updated_runs/mlflow/558039572225846411/d0f5e3210de942dba674602d7b1e0e52/artifacts
+end_time: null
+entry_point_name: ''
+experiment_id: '558039572225846411'
+lifecycle_stage: active
+run_id: d0f5e3210de942dba674602d7b1e0e52
+run_name: yolo11_deepfashion2
+source_name: ''
+source_type: 4
+source_version: ''
+start_time: 1775801496883
+status: 1
+tags: []
+user_id: chandi.s
